@@ -1,11 +1,8 @@
 apiVersion: radix.equinor.com/v1
 kind: RadixApplication
 metadata:
-  name: placebo
+  name: test-robotics
 spec:
-  build:
-    secrets:
-      - TLS_SERVER_KEY
   environments:
     - name: dev
       build:
@@ -15,13 +12,20 @@ spec:
 
   components:
     - name: turtlebot-simulator
+      resources:
+        requests:
+          memory: "8Gi"
+          cpu: "1000m"
+        limits:
+          memory: "8Gi"
+          cpu: "1000m"
       image: ghcr.io/aestene/isar-turtlebot:latest
       ports:
         - name: ros
           port: 9090
         - name: videostream
           port: 5000
-      publicPort: ros
+      publicPort: videostream
       ingressConfiguration:
         - websocketfriendly
       variables:
