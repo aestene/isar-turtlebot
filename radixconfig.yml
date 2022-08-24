@@ -1,0 +1,32 @@
+apiVersion: radix.equinor.com/v1
+kind: RadixApplication
+metadata:
+  name: placebo
+spec:
+  build:
+    secrets:
+      - TLS_SERVER_KEY
+  environments:
+    - name: dev
+      build:
+        from: main
+    - name: test
+    - name: prod
+
+  components:
+    - name: turtlebot-simulator
+      image: ghcr.io/aestene/isar-turtlebot:latest
+      ports:
+        - name: ros
+          port: 9090
+        - name: videostream
+          port: 5000
+      publicPort: ros
+      ingressConfiguration:
+        - websocketfriendly
+      variables:
+        TELEOP_CONTROLLER: disabled
+        ENABLE_MANIPULATOR: false
+        MANIPULATOR_GUI: disabled
+        HEADLESS: true
+        GAZEBO_MASTER_URI: turtlebot-simulator:11345
