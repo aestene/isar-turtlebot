@@ -13,6 +13,7 @@ from robot_interface.models.exceptions import (
 )
 from robot_interface.models.exceptions.robot_exceptions import (
     RobotInvalidTelemetryException,
+    UserMessage,
 )
 from robot_interface.models.inspection.inspection import Inspection
 from robot_interface.models.mission.status import StepStatus
@@ -66,8 +67,15 @@ class Turtlebot:
         self.step_handler = self.step_handlers[type(step).__name__]
         try:
             self.step_handler.start(step)
-        except TimeoutError as e:
-            raise RobotCommunicationException from e
+        except TimeoutError:
+            full_text: str = "Failed to initiate step due to a timeout error"
+            self.logger.exception(full_text)
+            raise RobotCommunicationException(
+                message=UserMessage(
+                    full_text=full_text,
+                    short_text="of a timeout error in the request to the turtlebot",
+                )
+            )
 
         if isinstance(step, InspectionStep):
             self.filenames[step.id] = self.step_handler.get_filename()
@@ -81,14 +89,26 @@ class Turtlebot:
     def get_inspections(self, id: UUID) -> Sequence[Inspection]:
         try:
             inspection: Inspection = self.inspections[id]
-        except KeyError as e:
-            self.logger.warning(f"No inspection connected to step: {id}!")
-            raise RobotException from e
+        except KeyError:
+            full_text: str = f"Unable to collect data for inspection {str(id)[:8]}"
+            self.logger.exception(full_text)
+            raise RobotCommunicationException(
+                message=UserMessage(
+                    full_text=full_text,
+                    short_text="of an unknown inspection ID in the turtlebot",
+                )
+            )
         try:
             inspection.data = self._read_data(id)
-        except FileNotFoundError as e:
-            self.logger.warning(f"No data file connected to step: {id}!")
-            raise RobotException from e
+        except FileNotFoundError:
+            full_text: str = f"Unable to collect data for inspection {str(id)[:8]}"
+            self.logger.exception(full_text)
+            raise RobotException(
+                message=UserMessage(
+                    full_text=full_text,
+                    short_text="of an unknown file in the turtlebot",
+                )
+            )
         return [inspection]
 
     def _read_data(self, inspection_id: UUID) -> bytes:
